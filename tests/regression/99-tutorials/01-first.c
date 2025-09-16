@@ -9,8 +9,14 @@ int main() {
   if (unknown) {
     x = -5;
   } else {
-    x = -7;
+    x = 7;
   }
+
+  if (y>0)
+  {
+    __goblint_check(x < 0);
+  }
+  
 
   // The above code branches on an uninitialized variable.
   // The value of x could be either -5 or -7.

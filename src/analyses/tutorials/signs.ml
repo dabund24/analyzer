@@ -12,7 +12,6 @@ module Signs = struct
   type t = Neg | Zero | Pos [@@deriving eq, ord, hash, to_yojson]
 
   let name () = "signs"
-
   let show x = match x with Neg -> "-" | Zero -> "0" | Pos -> "+"
 
   include Printable.SimpleShow (struct
@@ -31,19 +30,23 @@ module Signs = struct
     match (x, y) with
     | Neg, Pos | Neg, Zero | Zero, Pos ->
         true (* TODO: Maybe something missing? *)
-    | _ ->
-        false
+    | _ -> false
+
+  let elems = [ Neg; Zero; Pos ]
 end
 
 (* Now we turn this into a lattice by adding Top and Bottom elements.
  * We then lift the above operations to the lattice. *)
 module SL = struct
-  include Lattice.Flat (Signs)
+  include SetDomain.FiniteSet (Signs)
 
-  let of_int i = `Lifted (Signs.of_int i)
+  let of_int i = `Lifted (Signs.of_int i |> singleton)
 
   let lt x y =
-    match (x, y) with `Lifted x, `Lifted y -> Signs.lt x y | _ -> false
+    match (x, y) with
+    | `Lifted x, `Lifted y ->
+        for_all (fun x -> for_all (fun y -> Signs.lt x y) y) x
+    | _ -> false
 end
 
 module Spec : Analyses.MCPSpec = struct
@@ -54,7 +57,6 @@ module Spec : Analyses.MCPSpec = struct
   include Analyses.ValueContexts (D)
 
   let startstate v = D.bot ()
-
   let exitstate = startstate
 
   include Analyses.IdentitySpec
@@ -62,32 +64,25 @@ module Spec : Analyses.MCPSpec = struct
   (* This should now evaluate expressions. *)
   let eval (d : D.t) (exp : exp) : SL.t =
     match exp with
-    | Const (CInt (i, _, _)) ->
-        SL.of_int i (* TODO: Fix me! *)
-    | Lval (Var x, NoOffset) ->
-        D.find x d
-    | _ ->
-        SL.top ()
+    | Const (CInt (i, _, _)) -> SL.of_int i (* TODO: Fix me! *)
+    | Lval (Var x, NoOffset) -> D.find x d
+    | _ -> SL.top ()
 
   (* Transfer functions: we only implement assignments here.
    * You can leave this code alone... *)
   let assign man (lval : lval) (rval : exp) : D.t =
     let d = man.local in
     match lval with
-    | Var x, NoOffset when not x.vaddrof ->
-        D.add x (eval d rval) d
-    | _ ->
-        D.top ()
+    | Var x, NoOffset when not x.vaddrof -> D.add x (eval d rval) d
+    | _ -> D.top ()
 
   (* Here we return true if we are absolutely certain that an assertion holds! *)
   let assert_holds (d : D.t) (e : exp) =
     match e with
-    | BinOp (Lt, e1, e2, _) ->
-        SL.lt (eval d e1) (eval d e2)
+    | BinOp (Lt, e1, e2, _) -> SL.lt (eval d e1) (eval d e2)
     | BinOp (Gt, e1, e2, _) ->
         SL.lt (eval d e2) (eval d e1) (*lt with swapped operands*)
-    | _ ->
-        false
+    | _ -> false
 
   (* We should now provide this information to Goblint. Assertions are integer expressions,
    * so we implement here a response to EvalInt queries.
@@ -98,8 +93,7 @@ module Spec : Analyses.MCPSpec = struct
     | EvalInt e when assert_holds man.local e ->
         let ik = Cilfacade.get_ikind_exp e in
         ID.of_bool ik true
-    | _ ->
-        Result.top q
+    | _ -> Result.top q
 end
 
 let _ = MCP.register_analysis (module Spec : MCPSpec)
