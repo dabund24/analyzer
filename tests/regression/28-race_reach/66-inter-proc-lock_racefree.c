@@ -1,4 +1,4 @@
-//PARAM: --set lib.activated[+] sv-comp
+//PARAM: --set lib.activated[+] sv-comp --set ana.activated[+] creationLockset
 #include <pthread.h>
 #include "racemacros.h"
 
