@@ -4,23 +4,25 @@
 
 int global = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t id1, id2;
 
-void *t1_fun(void *arg) {
+void *t1(void *arg) {
   pthread_mutex_lock(&mutex);
-  assert_racefree(global); // no race
+  assert_racefree(global);
   pthread_mutex_unlock(&mutex);
   return NULL;
 }
 
-void *t2_fun(void *arg) { // t2 is protected by mutex locked in main thread
-    access(global);
+void *t2(void *arg) { // t2 is protected by mutex locked in main thread
+  access(global);
+  return NULL;
 }
 
 int main(void) {
-  create_threads(t1);
+  pthread_create(&id1, NULL, t1, NULL);
   pthread_mutex_lock(&mutex);
-  create_threads(t2);
-  join_threads(t2);
+  pthread_create(&id2, NULL, t2, NULL);
+  pthread_join(id2, NULL);
   pthread_mutex_unlock(&mutex);
   return 0;
 }
