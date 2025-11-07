@@ -28,7 +28,9 @@ module TransitiveDescendants = struct
       (match child_tid_lifted with
        | `Top | `Bot -> ()
        | `Lifted child_tid ->
+         (* contribute new child *)
          let _ = man.sideg tid (G.singleton child_tid) in
+         (* transitive hull *)
          let child_descendants = man.global child_tid in
          man.sideg tid child_descendants)
   ;;
