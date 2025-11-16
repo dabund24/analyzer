@@ -19,7 +19,7 @@ module TransitiveDescendants = struct
 
   let query man (type a) (x : a Queries.t) : a Queries.result =
     match x with
-    | Queries.DescendantThreads t -> (man.global : TID.t -> ConcDomain.ThreadSet.t)
+    | Queries.DescendantThreads t -> (man.global t : G.t)
     | _ -> Queries.Result.top x
   ;;
 
