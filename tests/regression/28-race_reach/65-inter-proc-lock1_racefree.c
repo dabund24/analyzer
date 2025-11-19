@@ -1,6 +1,4 @@
-//PARAM: --set lib.activated[+] sv-comp --set ana.activated[+] creationLockset
 #include <pthread.h>
-#include "racemacros.h"
 
 int global = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -8,13 +6,13 @@ pthread_t id1, id2;
 
 void *t1(void *arg) {
   pthread_mutex_lock(&mutex);
-  assert_racefree(global);
+  global++; // NORACE
   pthread_mutex_unlock(&mutex);
   return NULL;
 }
 
 void *t2(void *arg) { // t2 is protected by mutex locked in main thread
-  access(global);
+  global++; // NORACE
   return NULL;
 }
 
