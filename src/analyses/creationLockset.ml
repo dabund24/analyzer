@@ -1,7 +1,6 @@
 open Analyses
 module LF = LibraryFunctions
 
-(* TODO use ThreadLifted instead? Are Top or Bot relevant *)
 module TID = ThreadIdDomain.Thread
 module TIDs = ConcDomain.ThreadSet
 module LID = LockDomain.MustLock
@@ -55,10 +54,8 @@ module AncestorLocksetSpec = struct
   ;;
 end
 
-(** 
-    collects for each thread t_n pairs of must-ancestors and locks (t_0,l):
+(** collects for each thread t_n pairs of must-ancestors and locks (t_0,l):
     when t_n or a must-ancestor t_1 of t_n was created, the parent t_0 must have held l.
-    TODO: check if this requirement can be loosened
 *)
 module CreationLocksetSpec = struct
   include AncestorLocksetSpec
@@ -72,18 +69,13 @@ module CreationLocksetSpec = struct
     let child_ask = Analyses.ask_of_man fman in
     let child_tid_lifted = child_ask.f Queries.CurrentThreadId in
     match tid_lifted, child_tid_lifted with
-    | `Lifted tid, `Lifted child_tid ->
+    | `Lifted tid, `Lifted child_tid when TID.must_be_ancestor tid child_tid ->
       let descendants = descendants_closure child_ask child_tid in
       let lockset = ask.f Queries.MustLockset in
       let to_contribute = cartesian_prod (TIDs.singleton tid) lockset in
       TIDs.iter (contribute_lock man to_contribute) descendants
-    | _ -> (* deal with top or bottom? *) ()
+    | _ -> (* TODO deal with top or bottom? *) ()
   ;;
-
-  (* TODO: consider edge cases (most likely in creation lockset analysis)!
-     - `ana.threads.include-node` is false. Two threads created with different locksets may have the same id that way!
-     - child thread is not unique and thus could also ancestor of ego thread. In this case, it can also be created with a different lockset!
-     - more? *)
 
   let query man (type a) (x : a Queries.t) : a Queries.result =
     match x with
@@ -92,6 +84,9 @@ module CreationLocksetSpec = struct
   ;;
 end
 
+(** collects for each thread t_n pairs of ancestors and locks (t_0,l):
+    when l is unlocked in t_0, t_n could be running.
+*)
 module TaintedCreationLocksetSpec = struct
   include AncestorLocksetSpec
 
@@ -112,7 +107,7 @@ module TaintedCreationLocksetSpec = struct
     TIDs.diff may_transitively_created_tids must_joined_tids
   ;;
 
-  (** stolen from mutexGhost.ml. TODO Maybe add to library? *)
+  (** stolen from mutexGhost.ml. TODO Maybe add to utils? *)
   let mustlock_of_addr (addr : LockDomain.Addr.t) : LID.t option =
     match addr with
     | Addr mv when LockDomain.Mval.is_definite mv -> Some (LID.of_mval mv)
