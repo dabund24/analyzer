@@ -2,12 +2,12 @@
 
 open Analyses
 module LF = LibraryFunctions
-
 module TID = ThreadIdDomain.Thread
 module TIDs = ConcDomain.ThreadSet
 module LID = LockDomain.MustLock
 module LIDs = LockDomain.MustLockset
 
+(** common base for [CreationLocksetSpec] and [TaintedCreationLocksetSpec] *)
 module AncestorLocksetSpec = struct
   include IdentityUnitContextsSpec (* no context necessary(?) *)
   module D = Lattice.Unit
@@ -56,8 +56,8 @@ module AncestorLocksetSpec = struct
   ;;
 end
 
-(** collects for each thread t_n pairs of must-ancestors and locks (t_0,l):
-    when t_n or a must-ancestor t_1 of t_n was created, the parent t_0 must have held l.
+(** collects for each thread t_n pairs of ancestors and locks (t_0,l):
+    when t_n or an ancestor t_1 of t_n was created, the creating thread t_0 must have held l.
 *)
 module CreationLocksetSpec = struct
   include AncestorLocksetSpec
@@ -87,7 +87,7 @@ module CreationLocksetSpec = struct
 end
 
 (** collects for each thread t_n pairs of ancestors and locks (t_0,l):
-    when l is unlocked in t_0, t_n could be running.
+    l may be unlocked in t_0 while t_n could be running.
 *)
 module TaintedCreationLocksetSpec = struct
   include AncestorLocksetSpec
