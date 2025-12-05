@@ -109,13 +109,6 @@ module TaintedCreationLocksetSpec = struct
     TIDs.diff may_transitively_created_tids must_joined_tids
   ;;
 
-  (** stolen from mutexGhost.ml. TODO Maybe add to utils? *)
-  let mustlock_of_addr (addr : LockDomain.Addr.t) : LID.t option =
-    match addr with
-    | Addr mv when LockDomain.Mval.is_definite mv -> Some (LID.of_mval mv)
-    | _ -> None
-  ;;
-
   let event man e _ =
     match e with
     | Events.Unlock addr ->
@@ -125,7 +118,7 @@ module TaintedCreationLocksetSpec = struct
        | `Top | `Bot -> ()
        | `Lifted tid ->
          let possibly_running_tids = get_possibly_running_tids ask in
-         let lock_opt = mustlock_of_addr addr in
+         let lock_opt = LockDomain.MustLock.of_addr addr in
          (match lock_opt with
           | Some lock ->
             (* contribute for all possibly_running_tids: (tid, lock) *)
