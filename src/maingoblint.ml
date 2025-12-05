@@ -169,7 +169,7 @@ let check_arguments () =
   if get_bool "dbg.print_tids" && not (Logs.Level.should_log Debug) then
     warn "dbg.print_tids requires dbg.level debug";
   if List.mem "creationLockset" @@ get_string_list "ana.activated" && not (get_string "ana.thread.domain" = "history" && get_bool "ana.thread.include-node" && get_bool "ana.thread.context.create-edges") then
-    fail "creation lockset analysis requires ana.thread.domain to be set to \"history\" and both ana.thread.include-node and ana.thread.context.create-edges to be enabled";
+    fail "creation lockset analysis requires ana.thread.domain to be set to \"history\" and both ana.thread.include-node and ana.thread.context.create-edges to be enabled"
 
 (** Initialize some globals in other modules. *)
 let handle_flags () =
