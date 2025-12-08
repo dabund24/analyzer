@@ -7,13 +7,13 @@ pthread_t id1, id2, id3, id4_1, id4_2;
 
 void *t1(void *arg) {
   pthread_mutex_lock(&mutex);
-  global++; // RACE
+  global++; // RACE!
   pthread_mutex_unlock(&mutex);
   return NULL;
 }
 
 void* t4(void* arg) { // t4 is not protected by mutex, since it is created twice and the creation in t2 does not happen with mutex locked 
-  global++; // RACE
+  global++; // RACE!
   return NULL;
 }
 

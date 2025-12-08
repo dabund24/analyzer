@@ -10,7 +10,7 @@ pthread_t id1, idc1;
 
 void *t1(void *arg) {
   pthread_mutex_lock(&mutex);
-  global++; // RACE
+  global++; // RACE!
   pthread_mutex_unlock(&mutex);
   return NULL;
 }
@@ -26,7 +26,7 @@ void *tc2(void *arg) {
 }
 
 void *tc1(void *arg) { // tc1 is protected by tc2, but not by the main thread.
-  global++; // RACE
+  global++; // RACE!
   pthread_t idc2;
   pthread_create(&idc2, NULL, tc2, NULL);
   return NULL;

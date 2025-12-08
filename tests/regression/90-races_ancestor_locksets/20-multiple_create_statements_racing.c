@@ -7,13 +7,13 @@ pthread_t id1, id2;
 
 void *t1(void *arg) {
   pthread_mutex_lock(&mutex);
-  global++; // RACE
+  global++; // RACE!
   pthread_mutex_unlock(&mutex);
   return NULL;
 }
 
 void *t2(void *arg) { // t2 is not protected by mutex locked in main thread, since it is created/joined twice. The lock is released before the second join happens
-  global++; // RACE
+  global++; // RACE!
   return NULL;
 }
 
