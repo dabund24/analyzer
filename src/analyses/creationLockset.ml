@@ -114,15 +114,12 @@ module TaintedCreationLocksetSpec = struct
          let lock_opt = LockDomain.MustLock.of_addr addr in
          (match lock_opt with
           | Some lock ->
-            let _ = M.tracel "lol" "%a" LID.pretty lock in
             (* contribute for all possibly_running_tids: (tid, lock) *)
             let to_contribute = G.singleton (tid, lock) in
             TIDs.iter (contribute_lock man to_contribute) possibly_running_tids
           | None ->
-            let _ = M.tracel "lol" "idk" in
             (* any lock could have been unlocked. Contribute for all possibly_running_tids all members of their CreationLocksets with the ego thread to invalidate them!! *)
             let contribute_creation_lockset des_tid =
-              let _ = M.tracel "lol" "des tid %a" TID.pretty des_tid in
               let full_creation_lockset = ask.f @@ Queries.MayCreationLockset des_tid in
               let filtered_creation_lockset =
                 G.filter (fun (t, _l) -> t = tid) full_creation_lockset
