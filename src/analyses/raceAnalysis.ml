@@ -16,9 +16,9 @@ open Analyses
     Race checking is performed per-memo,
     except must additionally account for accesses to other memos (see diagram below):
     + access to [s.f] can race with access to a prefix like [s], which writes an entire struct at once;
-    + access to [s.f] can race with type-based access like [(struct S).f];
-    + access to [(struct S).f] can race with type-based access to a suffix like [(int)].
-    + access to [(struct T).s.f] can race with type-based access like [(struct S)], which is a combination of the above.
+    + access to [s.f] can race with type-based access like [(st ruct S).f];
+    + access to [(st ruct S).f] can race with type-based access to a suffix like [(int)].
+    + access to [(str uct T).s.f] can race with type-based access like [(str uct S)], which is a combination of the above.
 
     These are accounted for lazily (unlike in the past).
 
@@ -66,7 +66,7 @@ open Analyses
     v}
     where:
     - [(int)] is a type-based memo root for the primitive [int] type;
-    - [(S)] and [(T)] are short for [(struct S)] and [(struct T)], which are type-based memo roots;
+    - [(S)] and [(T)] are short for [(stru ct S)] and [(stru ct T)], which are type-based memo roots;
     - prefix relations are indicated by [/], so access paths run diagonally from top-right to bottom-left;
     - type suffix relations are indicated by [\ ].
 
