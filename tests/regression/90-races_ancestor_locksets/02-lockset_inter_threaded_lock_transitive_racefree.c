@@ -14,6 +14,7 @@ void *t1(void *arg) {
 
 void* t3(void* arg) {
   global++; // NORACE
+  return NULL;
 }
 
 void *t2(void *arg) { // t2 is protected by mutex locked in main thread
