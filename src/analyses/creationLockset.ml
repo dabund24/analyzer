@@ -42,7 +42,6 @@ module Spec = struct
     let descendants = ask.f @@ Queries.DescendantThreads tid in
     let unique_descendants = TIDs.filter (TID.must_be_ancestor tid) descendants in
     TIDs.add tid unique_descendants
-  ;;
 
   let threadspawn man ~multiple lval f args fman =
     let ask = ask_of_man man in
@@ -56,7 +55,6 @@ module Spec = struct
       let to_contribute = G.singleton tid lockset in
       TIDs.iter (contribute_locks man to_contribute) unique_descendants
     | _ -> ()
-  ;;
 
   (** compute all descendant threads that may run along with the ego thread at a program point.
       for all of them, tid must be an ancestor
@@ -76,7 +74,6 @@ module Spec = struct
     in
     let must_joined_tids = ask.f Queries.MustJoinedThreads in
     TIDs.diff may_transitively_created_tids must_joined_tids
-  ;;
 
   (** handle unlock of mutex [lock] *)
   let unlock man tid possibly_running_tids lock =
@@ -87,7 +84,6 @@ module Spec = struct
       man.sideg des_tid to_contribute
     in
     TIDs.iter shrink_locksets possibly_running_tids
-  ;;
 
   (** handle unlock of an unknown mutex. Assumes that any mutex could have been unlocked *)
   let unknown_unlock man tid possibly_running_tids =
@@ -96,7 +92,6 @@ module Spec = struct
       man.sideg des_tid to_contribute
     in
     TIDs.iter evaporate_locksets possibly_running_tids
-  ;;
 
   let event man e _ =
     match e with
@@ -112,7 +107,6 @@ module Spec = struct
           | None -> unknown_unlock man tid possibly_running_tids)
        | _ -> ())
     | _ -> ()
-  ;;
 
   module A = struct
     (** ego tid * must-lockset * creation-lockset *)
@@ -131,7 +125,6 @@ module Spec = struct
         G.exists (fun tp2 ls2 -> not (LIDs.disjoint ls1 ls2 || TID.equal tp1 tp2)) cl2
       in
       G.exists cl2_has_same_lock_other_tid cl1
-    ;;
 
     (** checks if [cl1] has a mapping ([tp1] |-> [ls1])
         such that [ls1] and [ls2] are not disjoint and [tp1] != [t2]
@@ -142,14 +135,12 @@ module Spec = struct
     *)
     let one_protected_inter_threaded_other_intra_threaded cl1 t2 ls2 =
       G.exists (fun tp1 ls1 -> not (LIDs.disjoint ls1 ls2 || TID.equal tp1 t2)) cl1
-    ;;
 
     let may_race (t1, ls1, cl1) (t2, ls2, cl2) =
       not
         (both_protected_inter_threaded cl1 cl2
          || one_protected_inter_threaded_other_intra_threaded cl1 t2 ls2
          || one_protected_inter_threaded_other_intra_threaded cl2 t1 ls1)
-    ;;
 
     let should_print (_t, _ls, cl) = not @@ G.is_empty cl
   end
@@ -163,11 +154,9 @@ module Spec = struct
       let creation_lockset = man.global tid in
       tid, lockset, creation_lockset
     | _ -> ThreadIdDomain.UnknownThread, LIDs.empty (), G.empty ()
-  ;;
 end
 
 let _ =
   MCP.register_analysis
     ~dep:[ "threadid"; "mutex"; "race"; "threadJoins"; "transitiveDescendants" ]
     (module Spec : MCPSpec)
-;;
