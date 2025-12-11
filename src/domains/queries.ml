@@ -77,6 +77,7 @@ type invariant_context = Invariant.context = {
 
 module YS = SetDomain.ToppedSet (YamlWitnessType.Entry) (struct let topname = "Top" end)
 
+
 (** GADT for queries with specific result type. *)
 type _ t =
   | EqualSet: exp -> ES.t t
