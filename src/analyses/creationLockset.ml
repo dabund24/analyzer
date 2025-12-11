@@ -79,6 +79,7 @@ module Spec = struct
   let unlock man tid possibly_running_tids lock =
     let shrink_locksets des_tid =
       let old_creation_lockset = G.find tid (man.global des_tid) in
+      (* Bot - {something} = Bot. This is exactly what we want in this case! *)
       let updated_creation_lockset = LIDs.remove lock old_creation_lockset in
       let to_contribute = G.singleton tid updated_creation_lockset in
       man.sideg des_tid to_contribute
