@@ -116,7 +116,7 @@ module Spec = struct
 
     let name () = "creationLockset"
 
-    (** checks if [itls1] has a member ([tp1] |-> [ls1]) and [itls2] has a member ([tp2] |-> [ls2])
+    (** checks if [cl1] has a member ([tp1] |-> [ls1]) and [cl2] has a member ([tp2] |-> [ls2])
         such that [ls1] and [ls2] are not disjoint and [tp1] != [tp2]
         @param cl1 creation-lockset of first thread [t1]
         @param cl2 creation-lockset of second thread [t2]
