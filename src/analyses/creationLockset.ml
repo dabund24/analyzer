@@ -37,7 +37,6 @@ module Spec = struct
       and filtered to only include threads, where [tid] is a must-ancestor
       @param ask any ask
       @param tid
-      @returns [{ tid }] \cup DES([tid])
   *)
   let unique_descendants_closure (ask : Queries.ask) tid =
     let descendants = ask.f @@ Queries.DescendantThreads tid in
