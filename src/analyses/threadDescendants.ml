@@ -1,7 +1,10 @@
+(** thread descendants analysis [threadDescendants]
+    flow-insensitive construction of descendants may-set for every thread
+*)
+
 open Analyses
 module TID = ThreadIdDomain.Thread
 
-(** flow-insensitive analysis mapping threads to may-sets of descendants *)
 module Spec = struct
   include IdentityUnitContextsSpec
   module D = Lattice.Unit
