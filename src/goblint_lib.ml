@@ -133,6 +133,7 @@ module PthreadBarriers = PthreadBarriers
 module ExtractPthread = ExtractPthread
 module PthreadOnce = PthreadOnce
 module CreationLockset = CreationLockset
+module CreationLocksetAlternative = CreationLocksetAlternative
 
 (** {2 Longjmp}
 
