@@ -19,7 +19,7 @@ sig
   val must_be_ancestor: t -> t -> bool
 
   (** Every TID of the returned list must be an ancestor of the passed TID. Return None if the result cannot be determined *)
-  val must_ancestors: t -> t list option
+  val must_ancestors: t -> t list
 end
 
 module type Stateless =
@@ -92,7 +92,7 @@ struct
   let is_unique = is_main
   let may_be_ancestor _ _ = true
   let must_be_ancestor _ _ = false
-  let must_ancestors _ = None
+  let must_ancestors _ = []
 end
 
 
@@ -181,7 +181,7 @@ struct
     in
     (* for unique threads, the first element of p is the current TID *)
     let ancestor_edges = if S.is_empty s then List.tl p else p in
-    Some (build_ancestors [] ancestor_edges)
+    build_ancestors [] ancestor_edges
 
   let compose ((p, s) as current) ni =
     if BatList.mem_cmp Base.compare ni p then (
@@ -278,8 +278,8 @@ struct
   let must_ancestors (t: H.t option * P.t option) =
     match t with
     | Some ht, None ->
-      Option.map (List.map (fun tid -> Some tid, None)) (H.must_ancestors ht)
-    | _ -> None
+      List.map (fun tid -> Some tid, None) (H.must_ancestors ht)
+    | _ -> []
 
   let created x d =
     let lifth x' d' =
@@ -387,9 +387,8 @@ struct
 
   let must_ancestors t =
     match t with
-    | Thread tid ->
-      Option.map (List.map (fun t -> Thread t)) (FlagConfiguredTID.must_ancestors tid)
-    | _ -> None
+    | Thread tid -> List.map (fun t -> Thread t) (FlagConfiguredTID.must_ancestors tid)
+    | _ -> []
 
   module D = FlagConfiguredTID.D
 

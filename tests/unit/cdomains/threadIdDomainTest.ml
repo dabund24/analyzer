@@ -100,14 +100,12 @@ let test_history_may_be_ancestor _ =
 
 let test_history_must_ancestors _ =
   let open History in
-  let compare_ancestors a1 a2 = Option.equal (List.equal equal) a1 a2 in
-  let print_ancestors a =
+  let compare_ancestors a1 a2 = (List.equal equal) a1 a2 in
+  let print_ancestors l =
     let string_of_thread t =
       GoblintCil.Pretty.sprint ~width:max_int (History.pretty () t)
     in
-    match a with
-    | Some l -> "Some [" ^ String.concat ", " (List.map string_of_thread l) ^ "]"
-    | None -> "None"
+    "[" ^ String.concat ", " (List.map string_of_thread l) ^ "]"
   in
 
   let assert_equal =
@@ -115,16 +113,16 @@ let test_history_must_ancestors _ =
   in
 
   (* unique tids *)
-  assert_equal (Some []) (must_ancestors main);
-  assert_equal (Some [ main ]) (must_ancestors (main >> a));
-  assert_equal (Some [ main; main >> a; main >> a >> b; main >> a >> b >> c ]) (must_ancestors (main >> a >> b >> c >> d));
+  assert_equal ([]) (must_ancestors main);
+  assert_equal ([ main ]) (must_ancestors (main >> a));
+  assert_equal ([ main; main >> a; main >> a >> b; main >> a >> b >> c ]) (must_ancestors (main >> a >> b >> c >> d));
 
   (* non-unique tids *)
-  assert_equal (Some [ main ]) (must_ancestors (main >> a >> a));
-  assert_equal (Some [ main ]) (must_ancestors (main >> a >> a >> b));
-  assert_equal (Some [ main ]) (must_ancestors (main >> a >> b >> c >> a));
-  assert_equal (Some [ main; main >> a ]) (must_ancestors (main >> a >> b >> c >> b >> d));
-  assert_equal (Some [ main; main >> a; main >> a >> b ]) (must_ancestors (main >> a >> b >> c >> c));
+  assert_equal ([ main ]) (must_ancestors (main >> a >> a));
+  assert_equal ([ main ]) (must_ancestors (main >> a >> a >> b));
+  assert_equal ([ main ]) (must_ancestors (main >> a >> b >> c >> a));
+  assert_equal ([ main; main >> a ]) (must_ancestors (main >> a >> b >> c >> b >> d));
+  assert_equal ([ main; main >> a; main >> a >> b ]) (must_ancestors (main >> a >> b >> c >> c));
 
   ()
 
