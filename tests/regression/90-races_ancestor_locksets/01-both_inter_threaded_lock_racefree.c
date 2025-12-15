@@ -5,7 +5,7 @@ int global = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t id_main_child, id_1, id_1_child;
 
-void *t1_child_fun(void* arg) { // t1child is protected by mutex locked in t1
+void *t1_child_fun(void *arg) { // t1child is protected by mutex locked in t1
   global++; // NORACE
   return NULL;
 }

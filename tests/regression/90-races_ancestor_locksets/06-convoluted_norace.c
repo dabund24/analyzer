@@ -12,7 +12,7 @@ void *t1(void *arg) {
   return NULL;
 }
 
-void* t3(void* arg) {
+void *t3(void* arg) {
   global++; // NORACE
   return NULL;
 }

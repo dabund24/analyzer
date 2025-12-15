@@ -15,7 +15,7 @@ void *t1(void *arg) {
   return NULL;
 }
 
-void* tc1(void* arg);
+void *tc1(void* arg);
 
 void *tc2(void *arg) {
   pthread_t idc1;

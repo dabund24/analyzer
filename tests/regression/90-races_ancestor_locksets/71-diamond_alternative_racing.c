@@ -12,12 +12,12 @@ void *t1(void *arg) {
   return NULL;
 }
 
-void* t4(void* arg) { // t4 is not protected by mutex, since it is created twice and the creation in t2 does not happen with mutex locked 
+void *t4(void* arg) { // t4 is not protected by mutex, since it is created twice and the creation in t2 does not happen with mutex locked 
   global++; // RACE!
   return NULL;
 }
 
-void* t3(void* arg) {
+void *t3(void* arg) {
   pthread_mutex_lock(&mutex);
   pthread_create(&id4_2, NULL, t4, NULL);
   pthread_join(id4_2, NULL);

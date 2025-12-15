@@ -7,7 +7,7 @@ pthread_t id1, id2;
 
 // both accesses are protected by same mutex **locked in same thread**
 
-void* t1(void* arg) {
+void *t1(void* arg) {
   pthread_mutex_lock(&mutex);
   global++; // RACE!
   pthread_mutex_unlock(&mutex);
