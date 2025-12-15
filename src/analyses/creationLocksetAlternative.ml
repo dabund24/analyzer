@@ -1,7 +1,4 @@
-(** creation lockset analysis [creationLocksetAlternative]
-    constructs edges on the graph over all threads, where the edges are labelled with must-locksets:
-    (t_1) ---L--> (t_0) means that t_1 is protected by all members of L from t_0
-
+(** alternative creation lockset analysis
     @see https://github.com/goblint/analyzer/pull/1865
 *)
 
@@ -11,6 +8,10 @@ module TIDs = ConcDomain.MustThreadSet
 module LID = LockDomain.MustLock
 module LIDs = LockDomain.MustLockset
 
+(** [creationLocksetAlternative]
+    collects parent threads, which could protect the ego thread and its descendants,
+    since the creation must happen with a lock held.
+*)
 module CreationLocksetAlternative = struct
   include IdentityUnitContextsSpec
   module D = Lattice.Unit
@@ -44,6 +45,10 @@ module CreationLocksetAlternative = struct
     | _ -> Queries.Result.top x
 end
 
+(** [taintedCreationLocksetAlternative]
+    collects parent threads, which cannot protect the ego thread and its descendants,
+    since an unlock could happen before joining
+*)
 module TaintedCreationLocksetAlternative = struct
   include IdentityUnitContextsSpec
   module D = Lattice.Unit
