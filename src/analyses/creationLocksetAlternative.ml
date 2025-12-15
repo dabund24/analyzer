@@ -70,32 +70,30 @@ module TaintedCreationLocksetAlternative = struct
     TIDs.filter (TID.must_be_ancestor tid) created_threads
 
   (** handle unlock of mutex [lock] *)
-  let unlock man tid created_tids lock =
-    let ask = ask_of_man man in
-    let joinedThreads = ask.f Queries.MustJoinedThreads in
+  let unlock man tid created_tids joined_tids lock =
     let contribute_lock child_tid =
-      let to_contribute = G.singleton tid (LockToThreads.singleton lock joinedThreads) in
+      let to_contribute = G.singleton tid (LockToThreads.singleton lock joined_tids) in
       man.sideg child_tid to_contribute
     in
     TIDs.iter contribute_lock created_tids
 
   (** handle unlock of an unknown mutex. Assumes that any mutex could have been unlocked *)
-  let unknown_unlock man tid created_tids =
+  let unknown_unlock man tid created_tids joined_tids =
     let ask = ask_of_man man in
-    let evaporate_locksets child_tid =
-      let allCreationLocksets = ask.f @@ Queries.CreationLocksetAlternative child_tid in
-      let creationLockset = CreationLocksetAlternative.G.find tid allCreationLocksets in
+    let contribute_all_locks child_tid =
+      let all_creation_locksets = ask.f @@ Queries.CreationLocksetAlternative child_tid in
+      let creation_lockset = CreationLocksetAlternative.G.find tid all_creation_locksets in
       let to_contribute_value =
         LIDs.fold
           (fun lock acc ->
-             LockToThreads.join acc (LockToThreads.singleton lock (TIDs.empty ())))
-          creationLockset
+             LockToThreads.join acc (LockToThreads.singleton lock joined_tids))
+          creation_lockset
           (LockToThreads.empty ())
       in
       let to_contribute = G.singleton tid to_contribute_value in
       man.sideg child_tid to_contribute
     in
-    TIDs.iter evaporate_locksets created_tids
+    TIDs.iter contribute_all_locks created_tids
 
   let event man e _ =
     match e with
@@ -105,10 +103,11 @@ module TaintedCreationLocksetAlternative = struct
       (match tid_lifted with
        | `Lifted tid ->
          let created_tids = get_unique_created_children tid ask in
+         let joined_tids = ask.f Queries.MustJoinedThreads in
          let lock_opt = LockDomain.MustLock.of_addr addr in
          (match lock_opt with
-          | Some lock -> unlock man tid created_tids lock
-          | None -> unknown_unlock man tid created_tids)
+          | Some lock -> unlock man tid created_tids joined_tids lock
+          | None -> unknown_unlock man tid created_tids joined_tids)
        | _ -> ())
     | _ -> ()
 
