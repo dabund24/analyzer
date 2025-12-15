@@ -118,37 +118,37 @@ module TaintedCreationLocksetAlternative = struct
 
     let name () = "creationLockset"
 
-    (** checks if [cl1] has a member ([tp1] |-> [ls1]) and [cl2] has a member ([tp2] |-> [ls2])
+    (** checks if [il1] has a member ([tp1] |-> [ls1]) and [il2] has a member ([tp2] |-> [ls2])
         such that [ls1] and [ls2] are not disjoint and [tp1] != [tp2]
-        @param cl1 creation-lockset of first thread [t1]
-        @param cl2 creation-lockset of second thread [t2]
+        @param il1 creation-lockset of first thread [t1]
+        @param il2 creation-lockset of second thread [t2]
         @returns whether [t1] and [t2] must be running mutually exclusive
     *)
-    let both_protected_inter_threaded cl1 cl2 =
+    let both_protected_inter_threaded il1 il2 =
       let cl2_has_same_lock_other_tid tp1 ls1 =
         Queries.CLS.exists
           (fun tp2 ls2 -> not (LIDs.disjoint ls1 ls2 || TID.equal tp1 tp2))
-          cl2
+          il2
       in
-      Queries.CLS.exists cl2_has_same_lock_other_tid cl1
+      Queries.CLS.exists cl2_has_same_lock_other_tid il1
 
-    (** checks if [cl1] has a mapping ([tp1] |-> [ls1])
+    (** checks if [il1] has a mapping ([tp1] |-> [ls1])
         such that [ls1] and [ls2] are not disjoint and [tp1] != [t2]
-        @param cl1 creation-lockset of thread [t1] at first program point
+        @param il1 creation-lockset of thread [t1] at first program point
         @param t2 thread id at second program point
         @param ls2 lockset at second program point
         @returns whether [t1] must be running mutually exclusive with second program point
     *)
-    let one_protected_inter_threaded_other_intra_threaded cl1 t2 ls2 =
+    let one_protected_inter_threaded_other_intra_threaded il1 t2 ls2 =
       Queries.CLS.exists
         (fun tp1 ls1 -> not (LIDs.disjoint ls1 ls2 || TID.equal tp1 t2))
-        cl1
+        il1
 
-    let may_race (t1, ls1, cl1) (t2, ls2, cl2) =
+    let may_race (t1, ls1, il1) (t2, ls2, il2) =
       not
-        (both_protected_inter_threaded cl1 cl2
-         || one_protected_inter_threaded_other_intra_threaded cl1 t2 ls2
-         || one_protected_inter_threaded_other_intra_threaded cl2 t1 ls1)
+        (both_protected_inter_threaded il1 il2
+         || one_protected_inter_threaded_other_intra_threaded il1 t2 ls2
+         || one_protected_inter_threaded_other_intra_threaded il2 t1 ls1)
 
     let should_print (_t, _ls, cl) = not @@ Queries.CLS.is_empty cl
   end
