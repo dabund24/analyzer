@@ -197,10 +197,10 @@ end
 
 let _ =
   MCP.register_analysis
-    ~dep:[ "threadid"; "mutex"; "race" ]
+    ~dep:[ "threadid"; "mutex"; "threadJoins" ]
     (module CreationLocksetAlternative : MCPSpec)
 
 let _ =
   MCP.register_analysis
-    ~dep:[ "threadid"; "mutex"; "race"; "creationLocksetAlternative" ]
+    ~dep:[ "threadid"; "mutex"; "threadJoins"; "creationLocksetAlternative" ]
     (module TaintedCreationLocksetAlternative : MCPSpec)
