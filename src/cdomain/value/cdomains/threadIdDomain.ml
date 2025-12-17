@@ -177,7 +177,7 @@ struct
     let rec build_ancestors acc p =
       match p with
       | [] -> acc
-      | h :: t -> build_ancestors ((h :: t, S.empty ()) :: acc) t
+      | h :: t as current -> build_ancestors ((current, S.empty ()) :: acc) t
     in
     (* for unique threads, the first element of p is the current TID *)
     let ancestor_edges = if S.is_empty s then List.tl p else p in
