@@ -5,8 +5,8 @@
 open Analyses
 module TID = ThreadIdDomain.Thread
 module TIDs = ConcDomain.MustThreadSet
-module LID = LockDomain.MustLock
-module LIDs = LockDomain.MustLockset
+module Lock = LockDomain.MustLock
+module Lockset = LockDomain.MustLockset
 
 (** [creationLocksetAlternative]
     collects parent threads, which could protect the ego thread and its descendants,
@@ -58,7 +58,7 @@ module TaintedCreationLocksetAlternative = struct
     include StdV
   end
 
-  module LockToThreads = MapDomain.MapBot (LID) (TIDs)
+  module LockToThreads = MapDomain.MapBot (Lock) (TIDs)
   module G = MapDomain.MapBot (TID) (LockToThreads)
 
   let name () = "taintedCreationLocksetAlternative"
@@ -84,7 +84,7 @@ module TaintedCreationLocksetAlternative = struct
       let all_creation_locksets = ask.f @@ Queries.CreationLocksetAlternative child_tid in
       let creation_lockset = CreationLocksetAlternative.G.find tid all_creation_locksets in
       let to_contribute_value =
-        LIDs.fold
+        Lockset.fold
           (fun lock acc ->
              LockToThreads.join acc (LockToThreads.singleton lock joined_tids))
           creation_lockset
@@ -113,7 +113,7 @@ module TaintedCreationLocksetAlternative = struct
 
   module A = struct
     (** ego tid * must-lockset * creation-lockset *)
-    include Printable.Prod3 (TID) (LIDs) (Queries.CLS)
+    include Printable.Prod3 (TID) (Lockset) (Queries.CLS)
 
     let name () = "creationLockset"
 
@@ -126,7 +126,7 @@ module TaintedCreationLocksetAlternative = struct
     let both_protected_inter_threaded il1 il2 =
       let cl2_has_same_lock_other_tid tp1 ls1 =
         Queries.CLS.exists
-          (fun tp2 ls2 -> not (LIDs.disjoint ls1 ls2 || TID.equal tp1 tp2))
+          (fun tp2 ls2 -> not (Lockset.disjoint ls1 ls2 || TID.equal tp1 tp2))
           il2
       in
       Queries.CLS.exists cl2_has_same_lock_other_tid il1
@@ -140,7 +140,7 @@ module TaintedCreationLocksetAlternative = struct
     *)
     let one_protected_inter_threaded_other_intra_threaded il1 t2 ls2 =
       Queries.CLS.exists
-        (fun tp1 ls1 -> not (LIDs.disjoint ls1 ls2 || TID.equal tp1 t2))
+        (fun tp1 ls1 -> not (Lockset.disjoint ls1 ls2 || TID.equal tp1 t2))
         il1
 
     let may_race (t1, ls1, il1) (t2, ls2, il2) =
@@ -176,16 +176,16 @@ module TaintedCreationLocksetAlternative = struct
       let compute_tcl_lockset tcl_transitive t0 =
         let tcl_transitive_t0 = G.find t0 tcl_transitive in
         LockToThreads.fold
-          (fun l j acc -> if TIDs.mem td j then acc else LIDs.add l acc)
+          (fun l j acc -> if TIDs.mem td j then acc else Lockset.add l acc)
           tcl_transitive_t0
-          (LIDs.empty ())
+          (Lockset.empty ())
       in
 
       let compute_il cl_transitive tcl_transitive =
         Queries.CLS.fold
           (fun t0 l_cl acc ->
              let l_tcl = compute_tcl_lockset tcl_transitive t0 in
-             let l_il = LIDs.diff l_cl l_tcl in
+             let l_il = Lockset.diff l_cl l_tcl in
              Queries.CLS.add t0 l_il acc)
           cl_transitive
           (Queries.CLS.empty ())
@@ -196,7 +196,7 @@ module TaintedCreationLocksetAlternative = struct
       let tcl_transitive = compute_tcl_transitive () in
       let il = compute_il cl_transitive tcl_transitive in
       td, lockset, il
-    | _ -> ThreadIdDomain.UnknownThread, LIDs.empty (), Queries.CLS.empty ()
+    | _ -> ThreadIdDomain.UnknownThread, Lockset.empty (), Queries.CLS.empty ()
 end
 
 let _ =
