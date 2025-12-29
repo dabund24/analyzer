@@ -33,7 +33,8 @@ module CreationLocksetAlternative = struct
     let child_ask = ask_of_man fman in
     let child_tid_lifted = child_ask.f Queries.CurrentThreadId in
     match tid_lifted, child_tid_lifted with
-    | `Lifted tid, `Lifted child_tid when TID.must_be_ancestor tid child_tid ->
+    (* use [must_ancestors] instead of [must_be_ancestor], since the former is also used in [access] of the tainted analysis! *)
+    | `Lifted tid, `Lifted child_tid when List.mem child_tid (TID.must_ancestors tid) ->
       let lockset = ask.f Queries.MustLockset in
       let to_contribute = G.singleton tid lockset in
       man.sideg child_tid to_contribute
