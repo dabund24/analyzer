@@ -18,7 +18,7 @@ sig
   (** Is the first TID a must ancestor of the second thread. Always false if the first TID is not unique *)
   val must_be_ancestor: t -> t -> bool
 
-  (** Every TID of the returned list must be an ancestor of the passed TID *)
+  (** Underapproximates the list of all must ancestors of the TID *)
   val must_ancestors: t -> t list
 end
 
