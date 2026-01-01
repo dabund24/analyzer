@@ -126,6 +126,30 @@ let test_history_must_ancestors _ =
 
   ()
 
+let test_history_parent _ =
+  let open History in
+  let compare_parents = Option.equal equal in
+  let print_parent = function
+    | Some t -> "Some " ^ GoblintCil.Pretty.sprint ~width:max_int (History.pretty () t)
+    | None -> "None"
+  in
+
+  let assert_equal =
+    assert_equal ?printer:(Some print_parent) ?cmp:(Some compare_parents)
+  in
+
+  (* unique tids *)
+  assert_equal (None) (parent main);
+  assert_equal (Some main) (parent (main >> a));
+  assert_equal (Some (main >> a)) (parent (main >> a >> b));
+  assert_equal (Some (main >> a >> b >> c)) (parent (main >> a >> b >> c >> d));
+
+  (* non-unique tids *)
+  assert_equal (None) (parent (main >> a >> a));
+  assert_equal (None) (parent (main >> a >> b >> a));
+  assert_equal (None) (parent (main >> a >> b >> c >> d >> b))
+
+
 
 let tests =
   "threadIdDomainTest" >::: [
@@ -133,5 +157,6 @@ let tests =
       "must_be_ancestor" >:: test_history_must_be_ancestor;
       "may_be_ancestor" >:: test_history_may_be_ancestor;
       "must_ancestors" >:: test_history_must_ancestors;
+      "parent" >:: test_history_parent;
     ]
   ]
