@@ -21,7 +21,7 @@ module CreationLocksetAlternative = struct
     include StdV
   end
 
-  module G = Queries.CLS
+  module G = Lockset
 
   let name () = "creationLocksetAlternative"
   let startstate _ = D.bot ()
@@ -36,8 +36,7 @@ module CreationLocksetAlternative = struct
     (* use [must_ancestors] instead of [must_be_ancestor], since the former is also used in [access] of the tainted analysis! *)
     | `Lifted tid, `Lifted child_tid when List.mem tid (TID.must_ancestors child_tid) ->
       let lockset = ask.f Queries.MustLockset in
-      let to_contribute = G.singleton tid lockset in
-      man.sideg child_tid to_contribute
+      man.sideg child_tid lockset
     | _ -> ()
 
   let query man (type a) (x : a Queries.t) : a Queries.result =
@@ -59,8 +58,10 @@ module TaintedCreationLocksetAlternative = struct
     include StdV
   end
 
-  module LockToThreads = MapDomain.MapBot (Lock) (TIDs)
-  module G = MapDomain.MapBot (TID) (LockToThreads)
+  module G = MapDomain.MapBot (Lock) (TIDs)
+
+  (** inter-threaded locksets; used in [access] and [A] *)
+  module IL = MapDomain.MapBot (TID) (Lockset)
 
   let name () = "taintedCreationLocksetAlternative"
   let startstate _ = D.bot ()
@@ -73,25 +74,21 @@ module TaintedCreationLocksetAlternative = struct
   (** handle unlock of mutex [lock] *)
   let unlock man tid created_tids joined_tids lock =
     let contribute_lock child_tid =
-      let to_contribute = G.singleton tid (LockToThreads.singleton lock joined_tids) in
+      let to_contribute = G.singleton lock joined_tids in
       man.sideg child_tid to_contribute
     in
     TIDs.iter contribute_lock created_tids
 
   (** handle unlock of an unknown mutex. Assumes that any mutex could have been unlocked *)
-  let unknown_unlock man tid created_tids joined_tids =
-    let ask = ask_of_man man in
+  let unknown_unlock man tid created_tids joined_tids =    let ask = ask_of_man man in
     let contribute_all_locks child_tid =
-      let all_creation_locksets = ask.f @@ Queries.CreationLocksetAlternative child_tid in
-      let creation_lockset = CreationLocksetAlternative.G.find tid all_creation_locksets in
-      let to_contribute_value =
+      let creation_lockset = ask.f @@ Queries.CreationLocksetAlternative child_tid in
+      let to_contribute =
         Lockset.fold
-          (fun lock acc ->
-             LockToThreads.join acc (LockToThreads.singleton lock joined_tids))
+          (fun lock acc -> G.join acc (G.singleton lock joined_tids))
           creation_lockset
-          (LockToThreads.empty ())
+          (G.empty ())
       in
-      let to_contribute = G.singleton tid to_contribute_value in
       man.sideg child_tid to_contribute
     in
     TIDs.iter contribute_all_locks created_tids
@@ -114,7 +111,7 @@ module TaintedCreationLocksetAlternative = struct
 
   module A = struct
     (** ego tid * must-lockset * creation-lockset *)
-    include Printable.Prod3 (TID) (Lockset) (Queries.CLS)
+    include Printable.Prod3 (TID) (Lockset) (IL)
 
     let name () = "creationLockset"
 
@@ -126,11 +123,9 @@ module TaintedCreationLocksetAlternative = struct
     *)
     let both_protected_inter_threaded il1 il2 =
       let cl2_has_same_lock_other_tid tp1 ls1 =
-        Queries.CLS.exists
-          (fun tp2 ls2 -> not (Lockset.disjoint ls1 ls2 || TID.equal tp1 tp2))
-          il2
+        IL.exists (fun tp2 ls2 -> not (Lockset.disjoint ls1 ls2 || TID.equal tp1 tp2)) il2
       in
-      Queries.CLS.exists cl2_has_same_lock_other_tid il1
+      IL.exists cl2_has_same_lock_other_tid il1
 
     (** checks if [il1] has a mapping ([tp1] |-> [ls1])
         such that [ls1] and [ls2] are not disjoint and [tp1] != [t2]
@@ -140,9 +135,7 @@ module TaintedCreationLocksetAlternative = struct
         @returns whether [t1] must be running mutually exclusive with second program point
     *)
     let one_protected_inter_threaded_other_intra_threaded il1 t2 ls2 =
-      Queries.CLS.exists
-        (fun tp1 ls1 -> not (Lockset.disjoint ls1 ls2 || TID.equal tp1 t2))
-        il1
+      IL.exists (fun tp1 ls1 -> not (Lockset.disjoint ls1 ls2 || TID.equal tp1 t2)) il1
 
     let may_race (t1, ls1, il1) (t2, ls2, il2) =
       not
@@ -150,46 +143,73 @@ module TaintedCreationLocksetAlternative = struct
          || one_protected_inter_threaded_other_intra_threaded il1 t2 ls2
          || one_protected_inter_threaded_other_intra_threaded il2 t1 ls1)
 
-    let should_print (_t, _ls, cl) = not @@ Queries.CLS.is_empty cl
+    let should_print (_t, _ls, cl) = not @@ IL.is_empty cl
   end
 
   let access man _ =
+    let module TclTransitive = MapDomain.MapBot (TID) (G) in
     let ask = Analyses.ask_of_man man in
     let tid_lifted = ask.f Queries.CurrentThreadId in
     match tid_lifted with
     | `Lifted td ->
+      let parent = TID.parent td in
       let must_ancestors = TID.must_ancestors td in
 
       let compute_cl_transitive () =
-        let cl_td = ask.f @@ Queries.CreationLocksetAlternative td in
+        let initial_value = (* protections from parent only *)
+          match parent with
+          | Some td_parent -> 
+            let cl_td = ask.f @@ Queries.CreationLocksetAlternative td in
+            IL.singleton td_parent cl_td
+          | None -> IL.empty ()
+        in
         List.fold_left
           (fun acc t1 ->
-             Queries.CLS.join acc (ask.f @@ Queries.CreationLocksetAlternative t1))
-          cl_td
+             match TID.parent t1 with
+             | Some t1_parent ->
+               let cl_t1 = ask.f @@ Queries.CreationLocksetAlternative t1 in
+               IL.join acc (IL.singleton t1_parent cl_t1)
+             | None -> acc (* we don't know anything about non-transitive protections to t1 *)
+          )
+          initial_value
           must_ancestors
       in
 
       let compute_tcl_transitive () =
-        let tcl_td = man.global td in
-        List.fold_left (fun acc t1 -> G.join acc (man.global t1)) tcl_td must_ancestors
+        let initial_value = (* tainted protections from parent only *)
+          match parent with
+          | Some td_parent -> 
+            let tcl_td = man.global td in
+            TclTransitive.singleton td_parent tcl_td
+          | None -> TclTransitive.empty ()
+        in
+        List.fold_left
+          (fun acc t1 ->
+             match TID.parent t1 with
+             | Some t1_parent ->
+               let tcl_t1 = man.global t1 in
+               TclTransitive.join acc (TclTransitive.singleton t1_parent tcl_t1)
+             | None -> acc (* we don't know anything about non-transitive tainted protections to t1 *)
+          )
+          initial_value
+          must_ancestors
       in
 
       let compute_tcl_lockset tcl_transitive t0 =
-        let tcl_transitive_t0 = G.find t0 tcl_transitive in
-        LockToThreads.fold
+        let tcl_transitive_t0 = TclTransitive.find t0 tcl_transitive in
+        G.fold
           (fun l j acc -> if TIDs.mem td j then acc else Lockset.add l acc)
           tcl_transitive_t0
           (Lockset.empty ())
       in
-
       let compute_il cl_transitive tcl_transitive =
-        Queries.CLS.fold
+        IL.fold
           (fun t0 l_cl acc ->
              let l_tcl = compute_tcl_lockset tcl_transitive t0 in
              let l_il = Lockset.diff l_cl l_tcl in
-             Queries.CLS.add t0 l_il acc)
+             IL.add t0 l_il acc)
           cl_transitive
-          (Queries.CLS.empty ())
+          (IL.empty ())
       in
 
       let lockset = ask.f Queries.MustLockset in
@@ -197,7 +217,7 @@ module TaintedCreationLocksetAlternative = struct
       let tcl_transitive = compute_tcl_transitive () in
       let il = compute_il cl_transitive tcl_transitive in
       td, lockset, il
-    | _ -> ThreadIdDomain.UnknownThread, Lockset.empty (), Queries.CLS.empty ()
+    | _ -> ThreadIdDomain.UnknownThread, Lockset.empty (), IL.empty ()
 end
 
 let _ =
