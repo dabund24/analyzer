@@ -26,6 +26,10 @@ module Spec = struct
   let startstate _ = D.bot ()
   let exitstate _ = D.bot ()
 
+  (** checks if [tid] is a must-ancestor of [child_tid] given [child_tid] may be a descendant of [tid] *)
+  let must_be_ancestor_or_unique tid child_tid =
+    TID.is_unique child_tid || TID.must_be_ancestor tid child_tid
+
   (** register a global contribution: global.[child_tid] \supseteq [to_contribute]
       @param man man at program point
       @param to_contribute new edges from [child_tid] to ego thread to register
@@ -40,7 +44,7 @@ module Spec = struct
   *)
   let unique_descendants_closure (ask : Queries.ask) tid =
     let descendants = ask.f @@ Queries.DescendantThreads tid in
-    let unique_descendants = TIDs.filter (TID.must_be_ancestor tid) descendants in
+    let unique_descendants = TIDs.filter (must_be_ancestor_or_unique tid) descendants in
     TIDs.add tid unique_descendants
 
   let threadspawn man ~multiple lval f args fman =
@@ -49,7 +53,7 @@ module Spec = struct
     let child_ask = ask_of_man fman in
     let child_tid_lifted = child_ask.f Queries.CurrentThreadId in
     match tid_lifted, child_tid_lifted with
-    | `Lifted tid, `Lifted child_tid when TID.must_be_ancestor tid child_tid ->
+    | `Lifted tid, `Lifted child_tid when must_be_ancestor_or_unique tid child_tid ->
       let unique_descendants = unique_descendants_closure child_ask child_tid in
       let lockset = ask.f Queries.MustLockset in
       let to_contribute = G.singleton tid lockset in
@@ -64,7 +68,7 @@ module Spec = struct
   let get_unique_running_descendants tid (ask : Queries.ask) =
     let may_created_tids = ask.f Queries.CreatedThreads in
     let may_unique_created_tids =
-      TIDs.filter (TID.must_be_ancestor tid) may_created_tids
+      TIDs.filter (must_be_ancestor_or_unique tid) may_created_tids
     in
     let may_transitively_created_tids =
       TIDs.fold
