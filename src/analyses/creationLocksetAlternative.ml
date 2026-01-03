@@ -155,43 +155,28 @@ module TaintedCreationLocksetAlternative = struct
       let parent = TID.parent td in
       let must_ancestors = TID.must_ancestors td in
 
-      let compute_cl_transitive () =
-        let initial_value = (* protections from parent only *)
+      (** computes both the transitive closure of both cl and tcl *)
+      let compute_cl_tcl_transitive () =
+        let initial_values =
+          (* protections from parent only *)
           match parent with
-          | Some td_parent -> 
+          | Some td_parent ->
             let cl_td = ask.f @@ Queries.CreationLocksetAlternative td in
-            IL.singleton td_parent cl_td
-          | None -> IL.empty ()
+            let tcl_td = man.global td in
+            IL.singleton td_parent cl_td, TclTransitive.singleton td_parent tcl_td
+          | None -> IL.empty (), TclTransitive.empty ()
         in
         List.fold_left
-          (fun acc t1 ->
+          (fun ((acc_cl, acc_tcl) as acc) t1 ->
              match TID.parent t1 with
              | Some t1_parent ->
                let cl_t1 = ask.f @@ Queries.CreationLocksetAlternative t1 in
-               IL.join acc (IL.singleton t1_parent cl_t1)
-             | None -> acc (* we don't know anything about non-transitive protections to t1 *)
-          )
-          initial_value
-          must_ancestors
-      in
-
-      let compute_tcl_transitive () =
-        let initial_value = (* tainted protections from parent only *)
-          match parent with
-          | Some td_parent -> 
-            let tcl_td = man.global td in
-            TclTransitive.singleton td_parent tcl_td
-          | None -> TclTransitive.empty ()
-        in
-        List.fold_left
-          (fun acc t1 ->
-             match TID.parent t1 with
-             | Some t1_parent ->
                let tcl_t1 = man.global t1 in
-               TclTransitive.join acc (TclTransitive.singleton t1_parent tcl_t1)
-             | None -> acc (* we don't know anything about non-transitive tainted protections to t1 *)
-          )
-          initial_value
+               ( IL.join acc_cl (IL.singleton t1_parent cl_t1)
+               , TclTransitive.join acc_tcl (TclTransitive.singleton t1_parent tcl_t1) )
+             | None ->
+               acc (* we don't know anything about non-transitive protections to t1 *))
+          initial_values
           must_ancestors
       in
 
@@ -213,8 +198,7 @@ module TaintedCreationLocksetAlternative = struct
       in
 
       let lockset = ask.f Queries.MustLockset in
-      let cl_transitive = compute_cl_transitive () in
-      let tcl_transitive = compute_tcl_transitive () in
+      let (cl_transitive, tcl_transitive) = compute_cl_tcl_transitive () in
       let il = compute_il cl_transitive tcl_transitive in
       td, lockset, il
     | _ -> ThreadIdDomain.UnknownThread, Lockset.empty (), IL.empty ()
