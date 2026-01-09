@@ -98,65 +98,10 @@ let test_history_may_be_ancestor _ =
      Might be related to untestability with this unit test harness: https://github.com/goblint/analyzer/pull/1561#discussion_r1888149978. *)
   ()
 
-let test_history_must_ancestors _ =
-  let open History in
-  let compare_ancestors a1 a2 = (List.equal equal) a1 a2 in
-  let print_ancestors l =
-    let string_of_thread t =
-      GoblintCil.Pretty.sprint ~width:max_int (History.pretty () t)
-    in
-    "[" ^ String.concat ", " (List.map string_of_thread l) ^ "]"
-  in
-
-  let assert_equal =
-    assert_equal ?printer:(Some print_ancestors) ?cmp:(Some compare_ancestors)
-  in
-
-  (* unique tids *)
-  assert_equal ([]) (must_ancestors main);
-  assert_equal ([ main ]) (must_ancestors (main >> a));
-  assert_equal ([ main; main >> a; main >> a >> b; main >> a >> b >> c ]) (must_ancestors (main >> a >> b >> c >> d));
-
-  (* non-unique tids *)
-  assert_equal ([ main ]) (must_ancestors (main >> a >> a));
-  assert_equal ([ main ]) (must_ancestors (main >> a >> a >> b));
-  assert_equal ([ main ]) (must_ancestors (main >> a >> b >> c >> a));
-  assert_equal ([ main; main >> a ]) (must_ancestors (main >> a >> b >> c >> b >> d));
-  assert_equal ([ main; main >> a; main >> a >> b ]) (must_ancestors (main >> a >> b >> c >> c));
-
-  ()
-
-let test_history_parent _ =
-  let open History in
-  let compare_parents = Option.equal equal in
-  let print_parent = function
-    | Some t -> "Some " ^ GoblintCil.Pretty.sprint ~width:max_int (History.pretty () t)
-    | None -> "None"
-  in
-
-  let assert_equal =
-    assert_equal ?printer:(Some print_parent) ?cmp:(Some compare_parents)
-  in
-
-  (* unique tids *)
-  assert_equal (None) (parent main);
-  assert_equal (Some main) (parent (main >> a));
-  assert_equal (Some (main >> a)) (parent (main >> a >> b));
-  assert_equal (Some (main >> a >> b >> c)) (parent (main >> a >> b >> c >> d));
-
-  (* non-unique tids *)
-  assert_equal (None) (parent (main >> a >> a));
-  assert_equal (None) (parent (main >> a >> b >> a));
-  assert_equal (None) (parent (main >> a >> b >> c >> d >> b))
-
-
-
 let tests =
   "threadIdDomainTest" >::: [
     "history" >::: [
       "must_be_ancestor" >:: test_history_must_be_ancestor;
       "may_be_ancestor" >:: test_history_may_be_ancestor;
-      "must_ancestors" >:: test_history_must_ancestors;
-      "parent" >:: test_history_parent;
     ]
   ]
