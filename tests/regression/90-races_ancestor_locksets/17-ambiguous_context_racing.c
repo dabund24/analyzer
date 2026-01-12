@@ -5,8 +5,6 @@ int global = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t id1, id2;
 
-// both accesses are protected by same mutex **locked in same thread**
-
 void *t1(void* arg) {
   pthread_mutex_lock(&mutex);
   global++; // RACE!
