@@ -1,6 +1,6 @@
 (** creation lockset analysis [creationLockset]
     constructs edges on the graph over all threads, where the edges are labelled with must-locksets:
-    (t_1) ---L--> (t_0) means that t_1 is protected by all members of L from t_0
+    (t_1) ---L--> (t_0) is represented by global t_1 t_0 = L and means that t_1 is protected by all members of L from t_0
 
     @see https://github.com/goblint/analyzer/pull/1865
 *)
