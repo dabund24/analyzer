@@ -1,0 +1,17 @@
+<benchmark tool="goblint" timelimit="15 min" memlimit="15 GB">
+  <rundefinition name="level00">
+    <option name="--conf">conf/svcomp26/level00-locked-creations.json</option>
+    <tasks name="C.no-data-race.Concurrency">
+      <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/no-data-race.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="config-2">
+    <option name="level00-locked-creations">conf/svcomp26/level00-locked-creations.json</option>
+    <tasks name="C.no-data-race.Concurrency">
+      <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/no-data-race.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+</benchmark>
